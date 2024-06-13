@@ -1,0 +1,94 @@
+
+#define BLYNK_TEMPLATE_ID "yourTemplateID"
+#define BLYNK_TEMPLATE_NAME "Quickstart Template"
+#define BLYNK_AUTH_TOKEN "YourAuthorizationCode"
+
+#define TRIG_PIN   6 // The Arduino Nano pin connected to TRIG pin of ultrasonic sensor
+#define ECHO_PIN   5 // The Arduino Nano pin connected to ECHO pin of ultrasonic sensor
+
+// Include the DHT11 library for interfacing with the sensor.
+#include <DHT11.h>
+// Alla the libraries we need for the connection to internet and the Blynk platform
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+
+// Temperature and Humidity sensor pin connection
+DHT11 dht11(2);
+
+
+char ssid[] = "YourWiFi NAME";
+char pass[] = "WiFi Password";
+
+// Declaring a global variables for sensor data
+int sensorVal,sensorVal2; 
+
+float duration_us, distance_cm;
+// This function creates the timer object. It's part of Blynk library 
+BlynkTimer timer; 
+
+void myTimer() 
+{
+  // This function describes what will happen with each timer tick
+  // e.g. writing sensor value to datastream V1,V2,V3.
+  // Virtual values declared in Blynk
+  Blynk.virtualWrite(V0, sensorVal);  
+  Blynk.virtualWrite(V1,sensorVal2);
+  Blynk.virtualWrite(V2,distance_cm);
+}
+
+void setup()
+{
+  //Start the serial port so we can view the results
+   Serial.begin(9600);
+
+   // Configure the trigger pin to output mode
+  pinMode(TRIG_PIN, OUTPUT);
+  // Configure the echo pin to input mode
+  pinMode(ECHO_PIN, INPUT);
+
+   //Connecting to Blynk Cloud 
+   Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+     
+  // Setting interval to send data to Blynk Cloud to 1000ms. 
+  // It means that data will be sent every second
+  timer.setInterval(1000L, myTimer); 
+}
+
+void loop()
+{
+  // Declaring variables for temperature and humidity readings
+  int temperature = 0;
+  int humidity = 0;
+
+    // Attempt to read the temperature and humidity values from the DHT11 sensor.
+  int result = dht11.readTemperatureHumidity(temperature, humidity);
+  sensorVal=temperature;   //pass t
+  sensorVal2=humidity;
+  //print data to serial Mpnitor 
+  Serial.print("Temperature: ");
+  Serial.print(temperature);
+  Serial.print(" °C\tHumidity: ");
+  Serial.print(humidity);
+  Serial.println(" %");
+  //Ultrasonic sensor trigger pin start 
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  // Measure the pulse duration from the ECHO pin
+  duration_us = pulseIn(ECHO_PIN, HIGH);
+
+  // calculate the distance
+  distance_cm = 0.017 * duration_us;
+
+  // print the value to Serial Monitor
+  Serial.print("distance: ");
+  Serial.print(distance_cm);
+  Serial.println(" cm");
+  // Runs all Blynk stuff
+  Blynk.run(); 
+  
+  // runs BlynkTimer
+  timer.run(); 
+}
